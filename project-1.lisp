@@ -212,7 +212,7 @@
 (defun regex->nfa (regex)
   (labels ((rec (x regex)
              (destructuring-bind (edges start) x
-               ;; TODO: Base case
+               ;; Base Case
                (typecase regex
                  (symbol
                   (let* ((accept (newstate))
@@ -223,17 +223,17 @@
                   (ecase (car regex)
                     (:concatenation
                      (reduce #'rec (cdr regex) :initial-value x))
+                    
                     (:union
                      (let* ((accept (newstate)))
                        (dolist (child (cdr regex))
-                         (if (not (equal nil child))
-                             (princ child)
-                         (let* ((output (rec x child)))
-                               (princ (last output))
-                               (let* ((edge (list (last output) :epsilon accept))
-                                      (edges (cons edge edges)))
-                                 (list edges accept)))))))
-
+                         (let* ((edgeList (list edges start))
+                                (output (rec edgeList child)))
+                           (destructuring-bind (edges1 accept1) output
+                             (let* ((edge (list accept1 :epsilon accept)))
+                               (setq edges (cons edge edges1))))))
+                       (list edges accept)))
+                    
                     (:kleene-closure
                      (let* ((start1 (newstate)))
                             (let* ((newX (list edges start1)))
@@ -245,12 +245,11 @@
                                        (newEdges (cons edge2 newEdges))
                                        (newEdges (cons edge1 newEdges)))
                                   (list newEdges accept))))))
-                  ))
-             ))))
-           (let* ((start (newstate)))
-             (destructuring-bind (edges accept)
-                 (rec (list nil start) regex)
-               (make-fa edges start (list accept))))))
+                    ))
+                 ))))
+    (let* ((start (newstate)))
+      (destructuring-bind (edges accept) (rec (list nil start) regex)
+        (make-fa edges start (list accept))))))
 
 
 
