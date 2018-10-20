@@ -253,6 +253,54 @@
 
 
 
+(defun eps-closure(nfa unvisited start)
+  (princ unvisited)
+  ;(princ #\linefeed)
+  (labels ((visit (c q)
+             (princ c)
+             (princ #\linefeed)
+             (typecase c
+               (symbol
+                (if (equal q c)
+                    c
+                    (closure nfa q (list q c))
+                    ))
+               (list
+                (if (member q c)
+                    c
+                    (closure nfa q (cons q c))
+                    ))))
+           (closure (nfa q newq)
+             (let* ((edges (finite-automaton-edges nfa))
+                    (p '()))
+               (dolist (edge edges)
+                 (if (equal q (car edge))
+                     (if (equal :epsilon (cadr edge))
+                         (cons p (car (cdr (cdr edge))))
+                         )))
+               (eps-closure nfa p newq)
+               )))
+
+    (let* ((c1 (reduce #'visit unvisisted :initial-value start)))
+      c1)
+    ))
+
+
+(defun move-eps-closure(nfa q transition)
+  (labels ((visit (c q)
+             (let* ((p '())
+                    (edges (finite-automaton-edges nfa)))
+               (dolist (edge edges)
+                 (if (equal q (car edge))
+                     (if (equal transition (cadr edge))
+                         (cons p (cdr (cdr edge)))
+                         )))
+               (eps-closure nfa p c))))
+    (let* ((c1 (reduce #'visit (eps-closure nfa q '()) :initial-value '())))
+      c1)
+    )
+  )
+
 ;; Convert a nondeterministic finite automaton to a deterministic
 ;; finite automaton
 ;;
@@ -261,14 +309,33 @@
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
     (labels ((sort-state (u)
                (sort u #'state-predicate))
-             (visit0 (edges subset)
-               (if (gethash subset visited-hash)
-                   edges
-                   (visit edges subset)))
-             (visit (edges subset)
-               (setf (gethash subset visited-hash) t)
-               (TODO 'nfa->dfa-visit))))
-    (TODO 'nfa->dfa)))
+             (visit-state (edges subset) ; visit-state(e, u)
+               (labels ((visit (edges subset) ; else case
+                          (setf (gethash subset visited-hash) t)
+                          (reduce #'visit-symbol alphabet :initial-value edges))
+                        (visit-symbol (edges transition)
+                          (let* ((u1 (move-eps-closure nfa subset transition)))
+                            (if (not (equal u1 nil))
+                                (visit-state (cons edges (list subset transition u1)) u1)
+                                edges))))
+                 (if (gethash subset visited-hash) ;subset already constructed
+                     edges
+                     (visit edges subset)))))
+      (let* ((states (remove (finite-automaton-start nfa) (finite-automaton-states nfa)))
+             (q01 (eps-closure nfa states (finite-automaton-start nfa)))
+             (E1 (visit-state '() q01))
+             (F1 '())
+             (accepts (finite-automaton-accept nfa)))
+        (dolist (accept accepts)
+          (if (gethash accept visited-hash)
+              (cons F1 accept)))
+        (princ F1)
+        (princ #\linefeed)
+        (princ E1)
+        (princ #\linefeed)
+        (princ q01)
+        (make-fa E1 q01 F1)))))
+                             
 
 ;; Compute the intersection between the arguments
 (defun dfa-intersection (dfa-0 dfa-1)
