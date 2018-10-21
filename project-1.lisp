@@ -539,7 +539,111 @@
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ;; ;; Return the complement of FA
-;; (defun fa-complement (fa ))
+;;All you need to do for this is flip the start and end states and then add edges for the e
+;; explicit dead state.
+(defun fa-complement (fa)
+  (setq fa
+        (add-dead-state-edges fa))
+  (setq fa 
+        (flip-accept-and-non-accept fa))
+  fa
+  )
+
+(defun add-dead-state-edges (fa)
+  (let* ((dead-state (newstate))
+         (edges (finite-automaton-edges fa)))
+    (format t "~%The start edges are~%")
+    (princ edges)
+    (dolist (state (finite-automaton-states fa))
+      (dolist (symbol (finite-automaton-alphabet fa))
+        (if (not (does-state-have-alphabet-edge edges symbol state))
+            (setq edges (cons (list state symbol dead-state) edges))
+          nil
+            )
+        )
+      )
+    (dolist (symbol (finite-automaton-alphabet fa))
+      (setq edges (cons (list dead-state symbol dead-state) edges))
+      )
+    (format t "~%The start edges are~%")
+    (princ edges)    
+    (make-fa edges (finite-automaton-start fa) (finite-automaton-accept fa))
+    )
+  )
+
+(defun does-state-have-alphabet-edge (edges symbol state)
+  (let* ((does-edge-exist nil))
+    (dolist (edge edges)
+      (if (and
+           (equal state (car edge))
+           (equal symbol (cadr edge)))
+          (setq does-edge-exist T)
+        nil
+        )
+      )
+    (format t "~%Does edge exist outputs: ~%")
+    (princ does-edge-exist)
+    does-edge-exist
+    )
+  )
+
+
+(defun flip-accept-and-non-accept (fa) 
+  (let* ((list-of-new-accept-states nil))
+    (setq list-of-new-accept-states 
+          (set-difference 
+           (finite-automaton-states fa)
+           (finite-automaton-accept fa)
+           ))
+     (make-fa 
+      (finite-automaton-edges fa) 
+      (finite-automaton-start fa) 
+      list-of-new-accept-states)
+  )
+)
+
+(defun test-flip-accept-and-non-accept ()
+  (fa-dot
+   (flip-accept-and-non-accept 
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(d))
+    )
+   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\flip_accept.dot"
+   )
+  )
+
+(defun test-add-dead-states ()
+  (fa-dot
+   (add-dead-state-edges
+    (make-fa '((q_0 a q_1)
+               (q_1 b q_2)
+               (q_1 a q_1)
+               (q_2 b q_2))
+             'q_0
+             '(q_2))
+    )
+   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\add_dead.dot"
+   )
+  )
+
+(defun test-complement ()
+  (fa-dot
+   (fa-complement
+    (make-fa '((q_0 a q_1)
+               (q_1 b q_2)
+               (q_1 a q_1)
+               (q_2 b q_2))
+             'q_0
+             '(q_2))
+    )
+   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\complement.dot"
+   )
+  )
+
 
 ;; ;; Test whether two FA are equivalent
 ;; (defun fa-equivalent (fa-0 fa-1))
