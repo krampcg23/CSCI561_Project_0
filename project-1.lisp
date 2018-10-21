@@ -254,9 +254,6 @@
 
 
 (defun eps-closure(nfa unvisited start)
-  (princ unvisited)
-  (princ start)
-  (princ #\linefeed)
   (labels ((makeP (nfa q)
              (let* ((edges (finite-automaton-edges nfa))
                     (p '()))
@@ -272,17 +269,22 @@
                ))
            
            (visit (c q)
-             (typecase c
-               (symbol
-                (if (equal q c)
-                    c
-                    (closure nfa q (list q c))
-                    ))
-               (list
-                (if (member q c)
-                    c
-                    (closure nfa q (cons q c))
-                    )))))
+             (if (not c)
+                 (closure nfa q (list q))
+                (progn 
+                  (typecase c
+                    (symbol
+                     (if (equal q c)
+                         c
+                         (closure nfa q (list q c))
+                         ))
+                    (list
+                     (if (member q c)
+                         c
+                         (closure nfa q (cons q c))
+                         )))))))
+    (if (equal nil unvisited)
+        start)
     (let* ((c1 (reduce #'visit unvisited :initial-value start)))
       c1)
     ))
@@ -312,37 +314,40 @@
 (defun nfa->dfa (nfa)
   (let ((visited-hash (make-hash-table :test #'equal))
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
-    (labels ((sort-state (u)
-               (sort u #'state-predicate))
+    (labels ((makeF (accepts)
+               (let* ((F1 '()))
+                 (loop for key being the hash-keys of visited-hash
+                       do (
+                           dolist (accept accepts F1)
+                            (if (member accept key)
+                                (progn 
+                                  (push key F1)
+                                  ))))
+                 F1))
+                 
+            ; (sort-state (u)
+            ;   (sort u #'state-predicate))
              (visit-state (edges subset) ; visit-state(e, u)
-               (labels ((visit (edges subset) ; else case
-                          (setf (gethash subset visited-hash) t)
-                          (reduce #'visit-symbol alphabet :initial-value edges))
-                        (visit-symbol (edges transition)
+               (labels ((visit-symbol (edges transition)
                           (let* ((u1 (move-eps-closure nfa subset transition)))
-                            (if (not (equal u1 nil))
-                                (visit-state (cons edges (list subset transition u1)) u1)
-                                edges))))
+                            (if (equal u1 nil)
+                                edges
+                                (progn
+                                  (let* ((edge (list subset transition u1)))
+                                    (push edge edges)                     
+                                    (visit-state edges u1))))))
+                        (visit (edges subset) ; else case
+                          (setf (gethash subset visited-hash) t)
+                          (reduce #'visit-symbol alphabet :initial-value edges)))
+                        
                  (if (gethash subset visited-hash) ;subset already constructed
-                     edges
-                     (visit edges subset)))))
-      (let* ((unvisited (remove (finite-automaton-start nfa) (finite-automaton-states nfa)))
-             (unvisited (sort-state unvisited))
-             (q01 (eps-closure nfa unvisited (finite-automaton-start nfa))))
-        (princ #\linefeed)
-        (let* ((E1 (visit-state '() q01))
-               (F1 '())
-               (accepts (finite-automaton-accept nfa)))
-          (dolist (accept accepts)
-            (if (gethash accept visited-hash)
-                (cons F1 accept)))
-          (princ #\linefeed)
-          (princ F1)
-          (princ #\linefeed)
-          (princ E1)
-          (princ #\linefeed)
-          (princ q01)
-          (make-fa E1 q01 F1))))))
+                     edges   ;true, then return e
+                     (visit edges subset))))) ;else go to the else case visit
+      (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
+             (E1 (visit-state '() q01))
+             (accepts (finite-automaton-accept nfa))
+             (F1 (makeF accepts)))
+          (make-fa E1 q01 F1)))))
                              
 
 ;; Compute the intersection between the arguments
