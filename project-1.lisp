@@ -291,12 +291,25 @@
         (visit s)
         (TODO 'dfa-intersection)))))
 
+
+;;This is my implementation of intersection.  I am not sure if this is different from what he wants????
+(defun dfa-intersection-hunter-version (dfa-0 dfa-1)
+  (dfa-product dfa-0 dfa-1 #'binary-and)
+  )
+
 (defun accept-state-finder (edge0 edge1 accept-list-0 accept-list-1 end-state-classifier)
-  (if (funcall end-state-classifier 
-               (is-state-accept edge0 accept-list-0)
-               (is-state-accept edge1 accept-list-1))
-      T
-    NIL)
+  (let* ((result nil))
+    (if (funcall end-state-classifier 
+         (is-state-accept edge0 accept-list-0)
+         (is-state-accept edge1 accept-list-1))
+        (setq result T)
+      NIL)
+    result
+    )
+  )
+
+(defun binary-and (arg0 arg1)
+  (and arg0 arg1)
   )
 
 (defun is-state-accept (state accept-list)
@@ -372,6 +385,7 @@
          nil)
         )
       )
+    (format t "End of dfa-product")
     (make-fa product-dfa-edges start-state end-states)
     )
   )
@@ -397,8 +411,28 @@
     #'equal
     )
    "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test_product_dfa.dot"
+   )
   )
-)
+;;This is the example from the slide
+(defun test-dfa-intersection ()
+  (fa-dot
+   (dfa-intersection-hunter-version 
+    (make-fa '((a 1 b)
+               (a 0 a)
+               (b 0 a)
+               (b 1 a))
+             'a
+             '(b))
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(c))
+    )
+   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test-intersection-dfa.dot"
+   )
+  )
 
 (defun test-regex->nfa ()
   (fa-dot 
