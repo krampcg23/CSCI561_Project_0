@@ -552,8 +552,6 @@
 (defun add-dead-state-edges (fa)
   (let* ((dead-state (newstate))
          (edges (finite-automaton-edges fa)))
-    (format t "~%The start edges are~%")
-    (princ edges)
     (dolist (state (finite-automaton-states fa))
       (dolist (symbol (finite-automaton-alphabet fa))
         (if (not (does-state-have-alphabet-edge edges symbol state))
@@ -565,8 +563,6 @@
     (dolist (symbol (finite-automaton-alphabet fa))
       (setq edges (cons (list dead-state symbol dead-state) edges))
       )
-    (format t "~%The start edges are~%")
-    (princ edges)    
     (make-fa edges (finite-automaton-start fa) (finite-automaton-accept fa))
     )
   )
@@ -581,8 +577,6 @@
         nil
         )
       )
-    (format t "~%Does edge exist outputs: ~%")
-    (princ does-edge-exist)
     does-edge-exist
     )
   )
@@ -646,7 +640,7 @@
 
 
 ;; ;; Test whether two FA are equivalent
-;; (defun fa-equivalent (fa-0 fa-1))
+ (defun fa-equivalent (fa-0 fa-1))
 
 ;; ;; Test whether FA-0 is subseteq of FA-1
-;; (defun fa-subseteq (fa-0 fa-1))
+ (defun fa-subseteq (fa-0 fa-1))
