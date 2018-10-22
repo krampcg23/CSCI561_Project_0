@@ -200,9 +200,6 @@
 ;;;; COMPLETE THE FUNCTIONS BELOW ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun TODO (thing)
-  (error "Unimplemented: ~A" thing))
-
 ;; Convert a regular expression to a nondeterministic finite automaton
 ;;
 ;; The following are examples of possible regular expression arguments to this function:
@@ -252,10 +249,10 @@
                  ))))
     (let* ((start (newstate)))
       (destructuring-bind (edges accept) (rec (list nil start) regex)
-        (format t "~% The edges are:  ~%")
-        (princ edges)
-        (format t "~% The accepts are ~%")
-        (princ (list accept))
+      ;  (format t "~% The edges are:  ~%")
+      ;  (princ edges)
+      ;  (format t "~% The accepts are ~%")
+      ;  (princ (list accept))
         (make-fa edges start (list accept))))))
 
 
@@ -278,18 +275,10 @@
            (visit (c q)
              (if (not c)
                  (closure nfa q (list q))
-                (progn 
-                  (typecase c
-                    (symbol
-                     (if (equal q c)
-                         c
-                         (closure nfa q (list q c))
-                         ))
-                    (list
-                     (if (member q c)
-                         c
-                         (closure nfa q (cons q c))
-                         )))))))
+                 (if (member q c)
+                     c
+                     (closure nfa q (cons q c))
+                         ))))
     (if (equal nil unvisited)
         start)
     (let* ((c1 (reduce #'visit unvisited :initial-value start)))
@@ -321,15 +310,28 @@
 (defun nfa->dfa (nfa)
   (let ((visited-hash (make-hash-table :test #'equal))
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
-    (labels ((makeF (accepts)
+    (labels (
+             (makeStart (listOfStates)
+               (if (equal 1 (length listOfStates))
+                   (setq listOfStates (car listOfStates)))
+               listOfStates)
+                  ; (let*(( output (car listOfStates)))
+              ; output)))
+
+             (makeF (accepts)
                (let* ((F1 '()))
                  (loop for key being the hash-keys of visited-hash
                        do (
                            dolist (accept accepts F1)
                             (if (member accept key)
-                                (progn 
-                                  (push key F1)
-                                  ))))
+                                (progn
+                                  (push key F1) 
+                           ;       (dolist (state (finite-automaton-states nfa) F1)
+                           ;         (print state)
+                           ;         (print key)
+                           ;         (if (member key (list state))
+                            ;            (push state F1)))
+                                    ))))
                  F1))
                  
             ; (sort-state (u)
@@ -340,21 +342,25 @@
                             (if (equal u1 nil)
                                 edges
                                 (progn
-                                  (let* ((edge (list subset transition u1)))
-                                    (push edge edges)                     
+                                  (let* ((start (makeStart subset))
+                                         (u1New (makeStart u1))
+                                         (edge (list start transition u1New)))
+                                    (setq edges (push edge edges))
                                     (visit-state edges u1))))))
                         (visit (edges subset) ; else case
                           (setf (gethash subset visited-hash) t)
                           (reduce #'visit-symbol alphabet :initial-value edges)))
-                        
                  (if (gethash subset visited-hash) ;subset already constructed
                      edges   ;true, then return e
                      (visit edges subset))))) ;else go to the else case visit
+      
       (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
              (E1 (visit-state '() q01))
              (accepts (finite-automaton-accept nfa))
-             (F1 (makeF accepts)))
-          (make-fa E1 q01 F1)))))
+             (F1 (makeF accepts))
+             (q01 (makeStart q01))
+             (F1 (makeStart F1)))
+        (make-fa E1 q01 F1)))))
                              
 
 ;; Compute the intersection between the arguments
@@ -470,9 +476,51 @@
     )
   )
 
+(defun reverseDFA (dfa)
+  (labels ((reverseEdges (edges)
+             (let* ((reversedEdges '() ))
+               (dolist (edge edges reversedEdges)
+                 (let* ((start (car (cdr (cdr edge))))
+                        (finish (car edge))
+                        (transition (cadr edge))
+                        (reversedEdge (list start transition finish)))
+                   (push reversedEdge reversedEdges)))
+               reversedEdges))
+           
+           (constructExtraEdges (start accepts)
+             (let* ((extraEdges '() ))
+               (dolist (accept accepts extraEdges)
+                 (let* ((edge (list start :epsilon accept)))
+                   (push edge extraEdges)))
+               extraEdges))
+
+           (combineEdges (edges1 edges2)
+             (let* ((edges '()))
+               (dolist (edge edges1 edges)
+                 (push edge edges))
+               (dolist (edge edges2 edges)
+                 (push edge edges))
+               edges)
+             ) )
+    
+    (let* ((q01 (newstate))
+           ;(states (cons q01 (finite-automaton-states dfa)))
+           (accept (list (finite-automaton-start dfa)))
+           (edges '())
+           (reversedEdges (reverseEdges (finite-automaton-edges dfa)))
+           (newStartToOldAccept (constructExtraEdges q01 (finite-automaton-accept dfa))))
+      (setq edges (combineEdges reversedEdges newStartToOldAccept))
+      (make-fa edges q01 accept)
+    )))
+           
 ;; Minimize the states in the dfa
-(defun dfa-minimize (dfa)
-  (TODO 'dfa-minimize))
+(defun dfa-minimize (dfa)                                        ; (
+ ( let* ((newDFA (nfa->dfa (reverseDFA (nfa->dfa (reverseDFA dfa))))))
+    newDFA)
+  )
+
+
+
 (defun test-dfa-product () 
   (fa-dot
    (dfa-product 
