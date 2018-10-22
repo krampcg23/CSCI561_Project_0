@@ -358,22 +358,22 @@
                              
 
 ;; Compute the intersection between the arguments
-(defun dfa-intersection (dfa-0 dfa-1)
-  (let ((states (make-hash-table :test #'equal))
-        (edges))
-    (labels ((visit (q)
-               (unless (gethash q states)
-                 (setf (gethash q states) t)
-                 (destructuring-bind (q0 q1) q
-                   (TODO 'dfa-intersection)))))
-      (let ((s (list (finite-automaton-start dfa-0)
-                     (finite-automaton-start dfa-1))))
-        (visit s)
-        (TODO 'dfa-intersection)))))
+;;(defun dfa-intersection (dfa-0 dfa-1)
+;;  (let ((states (make-hash-table :test #'equal))
+;;        (edges))
+;;    (labels ((visit (q)
+;;               (unless (gethash q states)
+;;                 (setf (gethash q states) t)
+;;                 (destructuring-bind (q0 q1) q
+;;                   (TODO 'dfa-intersection)))))
+;;      (let ((s (list (finite-automaton-start dfa-0)
+;;                     (finite-automaton-start dfa-1))))
+;;        (visit s)
+;;        (TODO 'dfa-intersection)))))
 
 
 ;;This is my implementation of intersection.  I am not sure if this is different from what he wants????
-(defun dfa-intersection-hunter-version (dfa-0 dfa-1)
+(defun dfa-intersection (dfa-0 dfa-1)
   (dfa-product dfa-0 dfa-1 #'binary-and)
   )
 
@@ -496,7 +496,7 @@
 ;;This is the example from the slide
 (defun test-dfa-intersection ()
   (fa-dot
-   (dfa-intersection-hunter-version 
+   (dfa-intersection
     (make-fa '((a 1 b)
                (a 0 a)
                (b 0 a)
@@ -638,9 +638,93 @@
    )
   )
 
-
+;; *********************NOTE WE NEED TO PUT THE FA'S THROUGH NFA->DFA AND DFA MINIMIZE BEFORE EQUIVALENT WILL WORK*************
 ;; ;; Test whether two FA are equivalent
- (defun fa-equivalent (fa-0 fa-1))
+ (defun fa-equivalent (fa-0 fa-1)
+     (is-fa-empty (dfa-product fa-0 fa-1 #'xor))
+   )
+
+(defun xor (cond1 cond2)
+  (or(equal cond1 (not cond2))(equal (not cond1) cond2))
+  )
 
 ;; ;; Test whether FA-0 is subseteq of FA-1
- (defun fa-subseteq (fa-0 fa-1))
+ (defun fa-subseteq (fa-0 fa-1)
+    (is-fa-empty (dfa-product fa-0 fa-1 #'a-not-b))
+   )
+
+(defun a-not-b (cond1 cond2)
+  (equal cond1 (not cond2))
+  )
+
+
+(defun is-fa-empty (fa)
+  (let* ((states-map (make-hash-table :test #'equal)))
+    (format t "~%before init~%")
+    (init-hash-map-with-states states-map (finite-automaton-states fa))
+    ;;(princ states-map)
+    (format t "~%after init~%")
+    (bfs (finite-automaton-edges fa) states-map (finite-automaton-start fa))
+    (dolist (state (finite-automaton-states fa))
+      (format t "~% visit:")
+      (princ state)
+      (princ (gethash state states-map))
+      )
+    (format t "~%after bfs~%")
+    (evaluate-hash-map-and-accept states-map (finite-automaton-accept fa))
+    ;;(format t "~%after eval hash map~%")
+  )
+)
+
+(defun test-is-fa-empty ()
+  (is-fa-empty
+   (make-fa '((a 1 b)
+              (b 1 c)
+               (d 1 a))
+            'a
+             '(c))
+   )
+  )
+
+(defun evaluate-hash-map-and-accept (visited-map accept-states)
+  (let* ((did-accept-state-get-visited nil))
+    (dolist (accept-state accept-states)
+      (if (gethash accept-state visited-map)
+          (setq did-accept-state-get-visited T)
+        nil
+          )
+      )
+    did-accept-state-get-visited
+    )
+  )
+;;    (princ states)
+;;    (setf (gethash state states ) t)
+;;    (princ states)
+;;    (princ (gethash state states) )
+(defun bfs (edges visited-map state-to-process)
+  (setf (gethash state-to-process visited-map) t)
+  (dolist (edge-to-process 
+           (get-list-of-edges-to-process state-to-process edges))
+    (if (not (gethash (caddr edge-to-process) visited-map))
+        (bfs edges visited-map (caddr edge-to-process))
+      nil
+      )
+  )
+)
+
+(defun get-list-of-edges-to-process (state edges)
+  (let* ((edges-with-state nil))
+   (dolist (edge edges)
+     (if (equal (car edge) state)
+         (setq edges-with-state (cons edge edges-with-state))
+         )
+     )
+   edges-with-state
+  )
+)
+
+(defun init-hash-map-with-states (hash-map list-of-states)
+  (dolist (state list-of-states)
+    (setf (gethash state hash-map) nil)
+    )
+  )
