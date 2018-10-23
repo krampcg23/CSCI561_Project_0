@@ -60,7 +60,7 @@
     (:xi "&xi;")
     (:omicron "&omicron;")
     (:pi "&pi;")
-    (:rho "&rho;")-
+    (:rho "&rho;")
     (:sigma "&sigma;")
     (:tau "&tau;")
     (:upsilon "&upsilon;")
@@ -68,6 +68,7 @@
     (:chi "&chi;")
     (:omega "&omega;")
     (t thing)))
+
 
 ;; Example:
 ;;
@@ -450,55 +451,20 @@
     )
   )
 
-;(defun reverseDFA (dfa)
-;  (labels ((reverseEdges (edges)
-;             (let* ((reversedEdges '() ))
-;               (dolist (edge edges reversedEdges)
-;                 (let* ((start (car (cdr (cdr edge))))
-;                        (finish (car edge))
-;                        (transition (cadr edge))
-;                        (reversedEdge (list start transition finish)))
-;                   (setf reversedEdges (cons reversedEdge reversedEdges))))
-;               reversedEdges))
-;           
-;           (constructExtraEdges (start accepts)
-;             (let* ((extraEdges '() ))
-;               (dolist (accept accepts extraEdges)
-;                 (let* (
-;                                        ; (otherEdge (list accept :epsilon start))
-;                        (edge (list start :epsilon accept)))
-;                                        ;                                        ; (setf extraEdges (cons otherEdge extraEdges)))
-;                                        ;                  (setf extraEdges (cons edge extraEdges))));
-;
-;               extraEdges))
-;
-;           (combineEdges (edges1 edges2)
-;             (let* ((edges '()))
-;               (dolist (edge edges1 edges)
-;                 (setf edges (cons edge edges)))
-;               (dolist (edge edges2 edges)
-;                 (setf edges (cons edge edges)))
-;               edges)
-;             ))
-;    (let* ((q01 (newstate))
-;           ;(states (cons q01 (finite-automaton-states dfa)))
-;           (accept (list (finite-automaton-start dfa)))
-;           (edges '())
-;           (reversedEdges (reverseEdges (finite-automaton-edges dfa)))
-;           (newStartToOldAccept (constructExtraEdges q01 (finite-automaton-accept dfa))))
-;      (setq edges (combineEdges reversedEdges newStartToOldAccept))
-;      (make-fa edges q01 accept)
-                                        ;    )))
-
-
+;tried adding back epsilon edges to start from all previous - does not work
+;try making an epsilon edge between all of the previous start states
+;will need to modify accept state
 (defun reverse-dfa (dfa)
   (let* ((q01 (newstate))
          (output '()))
     (dolist (edge (finite-automaton-edges dfa) output)
       (setf output (cons (reverse edge) output)))
-    (dolist (state (finite-automaton-accept dfa) output)
-      (setf output (cons (list q01 :epsilon state) output)))
-      (make-fa output q01 (list (finite-automaton-start dfa)))
+    ;(dolist (state (finite-automaton-accept dfa) output)
+    ;(setf output (cons (list q01 :epsilon state) output))
+    (let* ((head (car (finite-automaton-accept dfa))))
+      (dolist (state (finite-automaton-accept dfa) output)
+        (setq output (cons (list head :epsilon state) output))))
+      (make-fa output (car (finite-automaton-accept dfa)) (list (finite-automaton-start dfa)))
   ))
            
 ;; Minimize the states in the dfa
