@@ -2,21 +2,11 @@
 ;;;; STARTER DEFINITIONS FOR FINITE AUTOMATA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Fold-left from project 0
-;; Examples:
-;;   (fold-left #'- 1 '(2 3)) => -4
-(defun fold-left (function initial-value list)
-  (cond
-    ((not list) initial-value)
-    (t (fold-left function (funcall function initial-value (car list)) (cdr list)))))
-
-
 ;; A structure type for finite automata
 (defstruct (finite-automaton)
   "A Finite Automaton."
   ;; list of states
   (states nil :type list)
-
   ;; list of alphabet symbols
   (alphabet nil :type list)
 
@@ -291,11 +281,16 @@
                  (let* ((p '())
                         (edges (finite-automaton-edges nfa)))
                    (dolist (edge edges p)
-                     (if (equal q (car edge))
-                         (if (equal transition (cadr edge))
-                             (push (car (cdr (cdr edge))) p)
-                             )))))
-           
+                     (typecase (car edge)
+                       (list
+                        (if (member q (car edge))
+                            (if (equal transition (cadr edge))
+                                (push (car (cdr (cdr edge))) p))))
+                       (t
+                        (if (equal q (car edge))
+                            (if (equal transition (cadr edge))
+                                (push (car (cdr (cdr edge))) p)))))
+                     )))
            (visit (c q)
              (let* ((p (makeP nfa q transition)))
                (eps-closure nfa p c))))
@@ -308,34 +303,22 @@
 ;; finite automaton
 ;;
 (defun nfa->dfa (nfa)
-  (let ((visited-hash (make-hash-table :test #'equal))
+  (let* ((visited-hash (make-hash-table :test #'equal))
+        (Q1 '())
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
     (labels (
+             (denest (list)
+               (cond ((null list) nil)
+                     ((atom (car list)) (cons (car list) (denest (cdr list))))
+                     (t (append (denest (car list)) (denest (cdr list))))))
+             
              (makeStart (listOfStates)
                (if (equal 1 (length listOfStates))
                    (setq listOfStates (car listOfStates)))
                listOfStates)
-                  ; (let*(( output (car listOfStates)))
-              ; output)))
-
-             (makeF (accepts)
-               (let* ((F1 '()))
-                 (loop for key being the hash-keys of visited-hash
-                       do (
-                           dolist (accept accepts F1)
-                            (if (member accept key)
-                                (progn
-                                  (push key F1) 
-                           ;       (dolist (state (finite-automaton-states nfa) F1)
-                           ;         (print state)
-                           ;         (print key)
-                           ;         (if (member key (list state))
-                            ;            (push state F1)))
-                                    ))))
-                 F1))
-                 
-            ; (sort-state (u)
-            ;   (sort u #'state-predicate))
+             
+             (sort-state (u)
+               (sort u #'state-predicate))
              (visit-state (edges subset) ; visit-state(e, u)
                (labels ((visit-symbol (edges transition)
                           (let* ((u1 (move-eps-closure nfa subset transition)))
@@ -345,22 +328,39 @@
                                   (let* ((start (makeStart subset))
                                          (u1New (makeStart u1))
                                          (edge (list start transition u1New)))
+                                    (setq u1 (denest u1))
+                                    (setq u1 (remove-duplicates u1))
+                                    (setq u1 (sort-state u1))
                                     (setq edges (push edge edges))
                                     (visit-state edges u1))))))
                         (visit (edges subset) ; else case
+                          (setq subset (denest subset))
+                          (setq subset (remove-duplicates subset))
+                          (setq subset (sort-state subset))
                           (setf (gethash subset visited-hash) t)
+                          (push subset Q1)
                           (reduce #'visit-symbol alphabet :initial-value edges)))
-                 (if (gethash subset visited-hash) ;subset already constructed
+                 (setq subset (denest subset))
+                 (setq subset (remove-duplicates subset))
+                 (setq subset (sort-state subset))
+                 (if (gethash subset visited-hash)
                      edges   ;true, then return e
                      (visit edges subset))))) ;else go to the else case visit
-      
-      (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
+
+      (let* (
+             (q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
+             (q01 (denest q01))
+             (q01 (remove-duplicates q01))
+             (q01 (sort-state q01))
              (E1 (visit-state '() q01))
-             (accepts (finite-automaton-accept nfa))
-             (F1 (makeF accepts))
+             (accepts (denest (finite-automaton-accept nfa)))
+             (accepts (remove-duplicates accepts))
+             (accepts (sort-state accepts))
+             (F1 (remove-if (lambda (state) (not (intersection state accepts :test 'equal))) Q1))
              (q01 (makeStart q01))
-             (F1 (makeStart F1)))
-        (make-fa E1 q01 F1)))))
+             ;(F1 (makeStart F1))
+             )
+        (Make-fa E1 q01 F1)))))
                              
 
 ;;;;;;;;;;;;;;;;;;;;;Intersection code;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -645,8 +645,10 @@
              (let* ((extraEdges '() ))
                (dolist (accept accepts extraEdges)
                  (let* ((edge (list start :epsilon accept)))
-                   (push edge extraEdges)))
-               extraEdges))
+                      ;  (otherEdge (list accept :epsilon start)))
+                   (push edge extraEdges))
+                   ;(push otherEdge extraEdges))
+               extraEdges)))
 
            (combineEdges (edges1 edges2)
              (let* ((edges '()))
@@ -655,7 +657,7 @@
                (dolist (edge edges2 edges)
                  (push edge edges))
                edges)
-             ) )
+             ))
     
     (let* ((q01 (newstate))
            ;(states (cons q01 (finite-automaton-states dfa)))
