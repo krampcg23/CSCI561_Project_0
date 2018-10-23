@@ -256,7 +256,7 @@
                     (setf output (cons (car (cdr (cdr edge))) output))))
                output))
            (visit (c q)
-             (if (member q c)
+             (if (member q c :test 'equal)
                  c
                  (eps-closure nfa (func q) (cons q c)))))
              
@@ -328,14 +328,13 @@
                      edges
                      (visit edges subset))
                  )))
-      (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
-             (E1 (visit-state '() q01))
-             (F1 (constructF (finite-automaton-accept nfa))))
-        (print q01)
-        (print E1)
-        (print F1)
-        (make-fa E1 q01 F1))
-      )))
+      (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '())))
+        (setq q01 (sort-state q01))
+        (let* (
+               (E1 (visit-state '() q01))
+               (F1 (constructF (finite-automaton-accept nfa))))
+      (make-fa E1 q01 F1))
+      ))))
 
   
 ;; Compute the intersection between the arguments
