@@ -860,7 +860,7 @@
    )
 
 (defun a-not-b (cond1 cond2)
-  (equal cond1 (not cond2))
+  (and cond1 (not cond2))
   )
 
 (defun is-fa-empty (fa)
@@ -966,4 +966,88 @@
     NIL
     )
   
+  )
+
+
+(defun subset-equal-for-empty ()
+  (format t "~%TEST CASES FOR EMPTY")
+  (format t "~%subset case for empty first set: ~%")
+  (if (fa-subseteq
+        (make-fa '()
+                 nil
+                 '())
+        (make-fa '((c 1 c)
+                   (c 0 c)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+      nil 
+    )
+
+  (format t "~%TEST CASES FOR EMPTY")
+  (format t "~%subset case for empty first set 2: ~%")
+  (if (fa-subseteq
+        (make-fa '()
+                 nil
+                 '())
+        (make-fa '((c 1 c)
+                   (c 1 d)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+      nil 
+    )
+  
+  (format t "~%Negative test case")
+  (format t "~%This is the powerpoint example~%")
+  (if (fa-subseteq
+        (make-fa '((a 0 a)
+                   (a 1 b)
+                   (b 1 a)
+                   (b 0 a)
+                   )
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 d)
+                   (d 0 d)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+    nil
+    )
+)
+
+
+(defun test-product-for-subset (dot-file-path)
+    (fa-dot
+   (dfa-product 
+    (make-fa '((a 0 a)
+                   (a 1 b)
+                   (b 1 a)
+                   (b 0 a)
+                   )
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 d)
+                   (d 0 d)
+                   (d 1 c))
+                 'c
+                 '(c))
+        #'a-not-b
+    )
+   (concatenate 'string dot-file-path "test-subset-product-dfa.dot")
+   )
   )
