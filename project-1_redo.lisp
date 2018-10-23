@@ -286,13 +286,19 @@
   (let ((visited-hash (make-hash-table :test #'equal))
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
     (labels ((constructF (accepts)
+              ; (let* ((output '()))
+              ;   (dolist (item accepts output)
+              ;     (if (gethash item visited-hash)
+               ;        (setq output (cons item output))))
+               ;  output))
+
+               
                (let* ((output '()))
                  (dolist (item accepts output)
-                   (print item)
-                   (for 
-                   (if (gethash item visited-hash)
-                       (print "Entered")
-                       (setq output (cons item output))))))
+                   (loop for key being the hash-keys of visited-hash do
+                         (if (member item key )
+                             (setq output (cons key output)))))
+                 output))
 
              (sort-state (u)
                (sort u #'state-predicate))
@@ -314,8 +320,6 @@
       (let* ((q01 (eps-closure nfa (list (finite-automaton-start nfa)) '()))
              (E1 (visit-state '() q01))
              (F1 (constructF (finite-automaton-accept nfa))))
-       ; (print visited-hash)
-        (print F1)
         (make-fa E1 q01 F1))
       )))
 
@@ -342,7 +346,7 @@
 
 (defun accept-state-finder (edge0 edge1 accept-list-0 accept-list-1 end-state-classifier)
   (let* ((result nil))
-    (if (funcall end-state-classifier 
+    (if (funcall end-state-classifier 2
          (is-state-accept edge0 accept-list-0)
          (is-state-accept edge1 accept-list-1))
         (setq result T)
@@ -441,24 +445,26 @@
                         (finish (car edge))
                         (transition (cadr edge))
                         (reversedEdge (list start transition finish)))
-                   (push reversedEdge reversedEdges)))
+                   (setf reversedEdges (cons reversedEdge reversedEdges))))
                reversedEdges))
            
            (constructExtraEdges (start accepts)
              (let* ((extraEdges '() ))
                (dolist (accept accepts extraEdges)
-                 (let* ((edge (list start :epsilon accept))
-                        (otherEdge (list accept :epsilon start)))
-                   (push edge extraEdges)
-                   (push otherEdge extraEdges))
-               extraEdges)))
+                 (let* (
+                                        ; (otherEdge (list accept :epsilon start))
+                        (edge (list start :epsilon accept)))
+                                        ; (setf extraEdges (cons otherEdge extraEdges)))
+                   (setf extraEdges (cons edge extraEdges))))
+
+               extraEdges))
 
            (combineEdges (edges1 edges2)
              (let* ((edges '()))
                (dolist (edge edges1 edges)
-                 (push edge edges))
+                 (setf edges (cons edge edges)))
                (dolist (edge edges2 edges)
-                 (push edge edges))
+                 (setf edges (cons edge edges)))
                edges)
              ))
     
