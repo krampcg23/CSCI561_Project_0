@@ -502,7 +502,7 @@
   )
 
 (defun new-combined-state (a b)
-  (make-symbol (concatenate 'string (symbol-name a)  "," (symbol-name b))))
+  (make-symbol (concatenate 'string (write-to-string a)  "," (write-to-string b))))
 
 (defun evaluate-hash-map-and-accept (visited-map accept-states)
   (let* ((did-accept-state-get-visited nil))
@@ -540,7 +540,7 @@
 (defun return-proper-state (state-to-find list-of-states)
   (let* ((state-to-return nil))
     (dolist (current-state list-of-states)
-      (if (equal (symbol-name current-state) (symbol-name state-to-find))
+      (if (equal (write-to-string current-state) (write-to-string state-to-find))
           (setq state-to-return current-state)
         nil)
       )
