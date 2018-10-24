@@ -363,22 +363,7 @@
         (Make-fa E1 q01 F1)))))
                              
 
-;; Compute the intersection between the arguments
-;;(defun dfa-intersection (dfa-0 dfa-1)
-;;  (let ((states (make-hash-table :test #'equal))
-;;        (edges))
-;;    (labels ((visit (q)
-;;               (unless (gethash q states)
-;;                 (setf (gethash q states) t)
-;;                 (destructuring-bind (q0 q1) q
-;;                   (TODO 'dfa-intersection)))))
-;;      (let ((s (list (finite-automaton-start dfa-0)
-;;                     (finite-automaton-start dfa-1))))
-;;        (visit s)
-;;        (TODO 'dfa-intersection)))))
-
-
-;;This is my implementation of intersection.  I am not sure if this is different from what he wants????
+;;;;;;;;;;;;;;;;;;;;;Intersection code;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun dfa-intersection (dfa-0 dfa-1)
   (dfa-product dfa-0 dfa-1 #'binary-and)
   )
@@ -444,9 +429,9 @@
         (if (equal (cadr dfa-0-edge) (cadr dfa-1-edge))
             (let* ((new-first-state (return-proper-state (new-combined-state (car dfa-0-edge) (car dfa-1-edge)) states-list))
                    (new-last-state  (return-proper-state (new-combined-state (caddr dfa-0-edge) (caddr dfa-1-edge)) states-list)))
-              (if (equal
-                   (equal (cadr dfa-0-edge) (finite-automaton-start dfa-0))
-                   (equal (cadr dfa-1-edge) (finite-automaton-start dfa-1)))
+              (if (and
+                   (equal (car dfa-0-edge) (finite-automaton-start dfa-0))
+                   (equal (car dfa-1-edge) (finite-automaton-start dfa-1)))
                   (setq start-state new-first-state)
                 nil)
               (if (accept-state-finder 
@@ -471,11 +456,180 @@
          nil)
         )
       )
-    (format t "End of dfa-product")
     (make-fa product-dfa-edges start-state end-states)
     )
   )
 
+;;TEST FUNCTIONS;;
+(defun output-all-dot-files-for-intersection (dot-file-path)
+  (test-dfa-product-simple 
+   dot-file-path)
+  (test-dfa-product-three-state 
+   dot-file-path)
+  (test-dfa-product-nil 
+   dot-file-path )
+  (test-dfa-intersection-simple 
+   dot-file-path)
+  (test-dfa-intersection-nil 
+   dot-file-path)
+  (make-dot-file-three-state-dfa-1 
+   dot-file-path)
+  (make-dot-file-three-state-dfa-2 
+   dot-file-path)
+  (test-dfa-intersection-three-state 
+   dot-file-path)
+  )
+(defun test-dfa-product-simple (dot-file-path) 
+  (fa-dot
+   (dfa-product 
+    (make-fa '((a 1 b)
+               (a 0 a)
+               (b 0 a)
+               (b 1 a))
+             'a
+             '(b))
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(d))
+    #'equal
+    )
+   (concatenate 'string dot-file-path "test_product_dfa_simple.dot")
+   )
+  )
+
+(defun test-dfa-product-three-state (dot-file-path)
+  (fa-dot
+   (dfa-product
+    (make-three-state-dfa-1)
+    (make-three-state-dfa-2)
+    #'equal
+    )
+   (concatenate 'string dot-file-path "test_dfa_product_three_state.dot")
+   )
+  )
+
+(defun dot-file-path ()
+     "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\"
+  )
+
+(defun test-dfa-product-nil(dot-file-path)
+  (fa-dot
+   (dfa-product 
+    (make-fa '()
+             nil
+             '())
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(d))
+    #'equal
+    )
+   (concatenate 'string dot-file-path "test_dfa_product_nil.dot")
+   )
+  )
+
+(defun test-dfa-intersection-simple (dot-file-path)
+  (fa-dot
+   (dfa-intersection
+    (make-fa '((a 1 b)
+               (a 0 a)
+               (b 0 a)
+               (b 1 a))
+             'a
+             '(b))
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(c))
+    )
+   (concatenate 'string dot-file-path "test-intersection-dfa.dot")
+   )
+  )
+
+(defun test-dfa-intersection-nil(dot-file-path)
+  (fa-dot
+   (dfa-intersection 
+    (make-fa '()
+             nil
+             '())
+    (make-fa '((c 1 c)
+               (c 0 d)
+               (d 0 d)
+               (d 1 c))
+             'c
+             '(d))
+    )
+   (concatenate 'string dot-file-path "test_dfa_intersection_nil.dot")
+   )
+  )
+
+(defun make-three-state-dfa-1 ()
+      (make-fa '((a 3 d)
+               (a 1 b)
+               (d 2 b)
+               (d 1 d)
+               (b 1 b))
+             'b
+             '(d b))
+  )
+
+(defun make-dot-file-three-state-dfa-1(dot-file-path)
+    (fa-dot
+   (make-three-state-dfa-1)
+   (concatenate 'string dot-file-path "three-state-dfa-1.dot")
+   )
+  )
+
+
+(defun make-three-state-dfa-2()
+  (make-fa '(
+             (a 1 b)
+             (a 3 a)
+             (b 2 c)
+             (c 1 c)
+             (c 4 a))
+           'c
+           '(c))
+  )
+
+(defun make-dot-file-three-state-dfa-2(dot-file-path)
+    (fa-dot
+   (make-three-state-dfa-2)
+   (concatenate 'string dot-file-path "three-state-dfa-1.dot")
+   )
+  )
+
+(defun test-dfa-intersection-three-state (dot-file-path)
+  (fa-dot
+   (dfa-intersection
+    (make-three-state-dfa-1)
+    (make-three-state-dfa-2)
+    )
+   (concatenate 'string dot-file-path "dfa-intersection-three-state.dot")
+   )
+  )
+
+(defun make-fa-no-edges()
+    (make-fa '()
+           'c
+           '(a))
+  )
+
+(defun print-fa-no-edges (dot-file-path)
+  (fa-dot
+    (make-fa-no-edges)
+   (concatenate 'string dot-file-path "fa-no-edges.dot")
+   )
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;end of functions for intersection;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun reverseDFA (dfa)
   (labels ((reverseEdges (edges)
              (let* ((reversedEdges '() ))
@@ -521,49 +675,6 @@
     newDFA)
   )
 
-
-
-(defun test-dfa-product () 
-  (fa-dot
-   (dfa-product 
-    (make-fa '((a 1 b)
-               (a 0 a)
-               (b 0 a)
-               (b 1 a))
-             'a
-             '(b))
-    (make-fa '((c 1 c)
-               (c 0 d)
-               (d 0 d)
-               (d 1 c))
-             'c
-             '(d))
-    #'equal
-    )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test_product_dfa.dot"
-   )
-  )
-;;This is the example from the slide
-(defun test-dfa-intersection ()
-  (fa-dot
-   (dfa-intersection
-    (make-fa '((a 1 b)
-               (a 0 a)
-               (b 0 a)
-               (b 1 a))
-             'a
-             '(b))
-    (make-fa '((c 1 c)
-               (c 0 d)
-               (d 0 d)
-               (d 1 c))
-             'c
-             '(c))
-    )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test-intersection-dfa.dot"
-   )
-  )
-
 (defun test-regex->nfa ()
   (fa-dot 
    (regex->nfa '(:concatenation a b (:kleene-closure c)))
@@ -591,6 +702,8 @@
 ;; ;; Return the complement of FA
 ;;All you need to do for this is flip the start and end states and then add edges for the e
 ;; explicit dead state.
+
+;;;;;;;;;;;;;;;;;;;;;fa-complement code;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun fa-complement (fa)
   (setq fa
         (add-dead-state-edges fa))
@@ -611,10 +724,15 @@
         )
       )
     (dolist (symbol (finite-automaton-alphabet fa))
-      (setq edges (cons (list dead-state symbol dead-state) edges))
+      (setq edges (cons ( list dead-state symbol dead-state) edges))
       )
     (make-fa edges (finite-automaton-start fa) (finite-automaton-accept fa))
     )
+  )
+
+(defun test-add-dead-state-edges-on-function-no-edges ()
+  (format t "~%The dead state edges are~%")
+  (princ (add-dead-state-edges (make-fa-no-edges)))
   )
 
 (defun does-state-have-alphabet-edge (edges symbol state)
@@ -633,20 +751,37 @@
 
 
 (defun flip-accept-and-non-accept (fa) 
-  (let* ((list-of-new-accept-states nil))
+  (let* ((list-of-new-accept-states nil)
+         (possible-new-dead '(dead)))
     (setq list-of-new-accept-states 
           (set-difference 
            (finite-automaton-states fa)
            (finite-automaton-accept fa)
            ))
+    (if (not (finite-automaton-alphabet fa))
+        (setq list-of-new-accept-states 
+              (cons (car list-of-new-accept-states) possible-new-dead))
+      nil
+      )
      (make-fa 
       (finite-automaton-edges fa) 
       (finite-automaton-start fa) 
-      list-of-new-accept-states)
+      list-of-new-accept-states) 
   )
 )
 
-(defun test-flip-accept-and-non-accept ()
+;;;;;;;;;;;;;;;;;;;;;;;;;;;TEST FUNCTIONS FOR COMPLIMENT;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defun run-all-complement-tests (dot-file-path)
+  (test-flip-accept-and-non-accept dot-file-path)
+  (test-add-dead-states dot-file-path)
+  (test-complement dot-file-path)
+  (test-complement-three-state-1 dot-file-path)
+  (test-complement-no-edges dot-file-path) 
+  )
+
+(defun test-flip-accept-and-non-accept (dot-file-path)
   (fa-dot
    (flip-accept-and-non-accept 
     (make-fa '((c 1 c)
@@ -656,11 +791,11 @@
              'c
              '(d))
     )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\flip_accept.dot"
+   (concatenate 'string dot-file-path "flip_accept.dot")
    )
   )
 
-(defun test-add-dead-states ()
+(defun test-add-dead-states (dot-file-path)
   (fa-dot
    (add-dead-state-edges
     (make-fa '((q_0 a q_1)
@@ -670,11 +805,11 @@
              'q_0
              '(q_2))
     )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\add_dead.dot"
+   (concatenate 'string dot-file-path "add_dead.dot")
    )
   )
 
-(defun test-complement ()
+(defun test-complement (dot-file-path)
   (fa-dot
    (fa-complement
     (make-fa '((q_0 a q_1)
@@ -684,15 +819,36 @@
              'q_0
              '(q_2))
     )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\complement.dot"
+   (concatenate 'string dot-file-path "complement.dot")
    )
   )
 
+(defun test-complement-three-state-1 (dot-file-path)
+    (fa-dot
+   (fa-complement
+    (make-three-state-dfa-1)
+    )
+   (concatenate 'string dot-file-path "test-complement-three-state-1.dot")
+   )
+  )
+
+(defun test-complement-no-edges (dot-file-path) 
+  (fa-dot
+   (fa-complement
+    (make-fa-no-edges)
+    )
+   (concatenate 'string dot-file-path "test-complement-no-edges.dot")
+   )
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;End of complement;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; *********************NOTE WE NEED TO PUT THE FA'S THROUGH NFA->DFA AND DFA MINIMIZE BEFORE EQUIVALENT WILL WORK*************
 ;; ;; Test whether two FA are equivalent
- (defun fa-equivalent (fa-0 fa-1)
-     (is-fa-empty (dfa-product fa-0 fa-1 #'xor))
-   )
+
+(defun fa-equivalent (fa-0 fa-1)
+  (is-fa-empty (dfa-product fa-0 fa-1 #'xor))
+  )
+
 
 (defun xor (cond1 cond2)
   (or(equal cond1 (not cond2))(equal (not cond1) cond2))
@@ -704,25 +860,14 @@
    )
 
 (defun a-not-b (cond1 cond2)
-  (equal cond1 (not cond2))
+  (and cond1 (not cond2))
   )
-
 
 (defun is-fa-empty (fa)
   (let* ((states-map (make-hash-table :test #'equal)))
-    (format t "~%before init~%")
     (init-hash-map-with-states states-map (finite-automaton-states fa))
-    ;;(princ states-map)
-    (format t "~%after init~%")
     (bfs (finite-automaton-edges fa) states-map (finite-automaton-start fa))
-    (dolist (state (finite-automaton-states fa))
-      (format t "~% visit:")
-      (princ state)
-      (princ (gethash state states-map))
-      )
-    (format t "~%after bfs~%")
     (evaluate-hash-map-and-accept states-map (finite-automaton-accept fa))
-    ;;(format t "~%after eval hash map~%")
   )
 )
 
@@ -744,13 +889,11 @@
         nil
           )
       )
-    did-accept-state-get-visited
+    (not did-accept-state-get-visited)
     )
   )
-;;    (princ states)
-;;    (setf (gethash state states ) t)
-;;    (princ states)
-;;    (princ (gethash state states) )
+
+
 (defun bfs (edges visited-map state-to-process)
   (setf (gethash state-to-process visited-map) t)
   (dolist (edge-to-process 
@@ -777,4 +920,134 @@
   (dolist (state list-of-states)
     (setf (gethash state hash-map) nil)
     )
+  )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Code for testing fa equilvance;;;;;
+
+
+(defun test-two-state-equilances ()
+  (format t "~%TEST CASES FOR EQUILVANCE")
+  (format t "~%Not equilvant test case: ~%")
+  (if (fa-equivalent
+        (make-fa '((a 1 a)
+                   (a 0 a)
+                   (b 0 a)
+                   (b 1 a))
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 c)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      NIL
+      (format t "PASS") 
+    )
+  
+  (format t "~%Equilvant test case: ~%")
+  (if (fa-equivalent
+        (make-fa '((a 1 a)
+                   (a 0 a)
+                   (b 0 a)
+                   (b 1 a))
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 c)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(d))
+        
+       )
+      (format t "PASS") 
+    NIL
+    )
+  
+  )
+
+
+(defun subset-equal-for-empty ()
+  (format t "~%TEST CASES FOR EMPTY")
+  (format t "~%subset case for empty first set: ~%")
+  (if (fa-subseteq
+        (make-fa '()
+                 nil
+                 '())
+        (make-fa '((c 1 c)
+                   (c 0 c)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+      nil 
+    )
+
+  (format t "~%TEST CASES FOR EMPTY")
+  (format t "~%subset case for empty first set 2: ~%")
+  (if (fa-subseteq
+        (make-fa '()
+                 nil
+                 '())
+        (make-fa '((c 1 c)
+                   (c 1 d)
+                   (d 0 c)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+      nil 
+    )
+  
+  (format t "~%Negative test case")
+  (format t "~%This is the powerpoint example~%")
+  (if (fa-subseteq
+        (make-fa '((a 0 a)
+                   (a 1 b)
+                   (b 1 a)
+                   (b 0 a)
+                   )
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 d)
+                   (d 0 d)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+      (format t "PASS")
+    nil
+    )
+)
+
+
+(defun test-product-for-subset (dot-file-path)
+    (fa-dot
+   (dfa-product 
+    (make-fa '((a 0 a)
+                   (a 1 b)
+                   (b 1 a)
+                   (b 0 a)
+                   )
+                 'a
+                 '(b))
+        (make-fa '((c 1 c)
+                   (c 0 d)
+                   (d 0 d)
+                   (d 1 c))
+                 'c
+                 '(c))
+        #'a-not-b
+    )
+   (concatenate 'string dot-file-path "test-subset-product-dfa.dot")
+   )
   )
