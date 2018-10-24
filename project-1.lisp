@@ -424,6 +424,7 @@
          (start-state NIL)
          (end-states NIL)
          (states-list (create-list-of-product-states dfa-0 dfa-1)))
+    (format t "~%in dfa product ~%")
     (dolist (dfa-0-edge (finite-automaton-edges dfa-0))
       (dolist (dfa-1-edge (finite-automaton-edges dfa-1))
         (if (equal (cadr dfa-0-edge) (cadr dfa-1-edge))
@@ -1006,7 +1007,7 @@
       nil 
     )
   
-  (format t "~%Negative test case")
+  (format t "~%Positive test case")
   (format t "~%This is the powerpoint example~%")
   (if (fa-subseteq
         (make-fa '((a 0 a)
@@ -1026,6 +1027,27 @@
        )
       (format t "PASS")
     nil
+    )
+  (format t "~%negative test case")
+  (format t "~%power point example with one~%")
+    (if (fa-subseteq
+        (make-fa '((a 0 a)
+                   (a 1 b)
+                   (b 1 a)
+                   (b 0 a)
+                   )
+                 'a
+                 '(a))
+        (make-fa '((c 1 c)
+                   (c 0 d)
+                   (d 0 d)
+                   (d 1 c))
+                 'c
+                 '(c))
+        
+       )
+        nil
+      (format t "PASS")
     )
 )
 
@@ -1051,3 +1073,65 @@
    (concatenate 'string dot-file-path "test-subset-product-dfa.dot")
    )
   )
+
+
+
+
+(defun make-wampus-human-product (dot-file-path)
+  (fa-dot
+   (dfa-product 
+     (make-fa '(
+                    (0 (0 1) 1)
+                    (0 (0 3) 3)
+                    (0 (0 0) 0)
+                    (1 (1 2) 2)
+                    (1 (1 0) 0)
+                    (1 (1 1) 1)
+                    (2 (2 4) 4)
+                    (2 (2 1) 1)
+                    (2 (2 2) 2)
+                    (4 (4 4) 4)
+                    (4 (4 7) 7)
+                    (4 (4 2) 2)
+                    (7 (7 4) 4)
+                    (7 (7 6) 6)
+                    (6 (6 6) 6)
+                    (6 (6 7) 7)
+                    (6 (6 5) 5)
+                    (5 (5 5) 5)
+                    (5 (5 6) 6)
+                    (5 (5 3) 3)
+                    (3 (3 5) 5)
+                    (3 (3 3) 3)
+                    (3 (3 0) 0))
+                    '0
+                    '(7))
+      
+     (make-fa '(
+                    (0 (0 1) 1)
+                    (0 (0 3) 3)
+                    (1 (1 2) 2)
+                    (1 (1 0) 0)
+                    (2 (2 4) 4)
+                    (2 (2 1) 1)
+                    (4 (4 7) 7)
+                    (4 (4 2) 2)
+                    (7 (7 4) 4)
+                    (7 (7 6) 6)
+                    (6 (6 7) 7)
+                    (6 (6 5) 5)
+                    (5 (5 6) 6)
+                    (5 (5 3) 3)
+                    (3 (3 5) 5)
+                    (3 (3 0) 0))
+                    '5
+                    '())
+     
+    #'always-false
+    )
+   (concatenate 'string dot-file-path "wampus-human-product.dot")
+   )
+  )
+
+(defun always-false (cond1 cond2)
+  nil)
