@@ -483,6 +483,20 @@
   )
 )
 
+(defun accept-state-finder (edge0 edge1 accept-list-0 accept-list-1 end-state-classifier)
+  (let* ((result nil))
+    (if (funcall end-state-classifier 
+         (is-state-accept edge0 accept-list-0)
+         (is-state-accept edge1 accept-list-1))
+        (setq result T)
+      NIL)
+    result
+    )
+  )
+
+(defun new-combined-state (a b)
+  (make-symbol (concatenate 'string (symbol-name a)  "," (symbol-name b))))
+
 (defun evaluate-hash-map-and-accept (visited-map accept-states)
   (let* ((did-accept-state-get-visited nil))
     (dolist (accept-state accept-states)
@@ -523,6 +537,43 @@
     (setf (gethash state hash-map) nil)
     )
   )
+
+(defun is-state-accept (state accept-list)
+  (let* ((is-in-accept NIL))
+    (dolist (accept-state accept-list)
+      (if (equal (symbol-name state) (symbol-name accept-state))
+          (setq is-in-accept T)
+        nil
+        )
+      )
+    is-in-accept)
+  )
+
+(defun create-list-of-product-states (dfa-0 dfa-1)
+  (let* ((product-states NIL))
+  (dolist (state-0 (finite-automaton-states dfa-0))
+    (dolist (state-1 (finite-automaton-states dfa-1))
+      (setq product-states 
+            (cons 
+             (new-combined-state state-0 state-1)
+             product-states))
+      )
+    )
+  product-states)
+)
+
+(defun return-proper-state (state-to-find list-of-states)
+  (let* ((state-to-return nil))
+    (dolist (current-state list-of-states)
+      (if (equal (symbol-name current-state) (symbol-name state-to-find))
+          (setq state-to-return current-state)
+        nil)
+      )
+    state-to-return
+    )
+  )
+
+
 
 
 (defun dfa-product-hunter (dfa-0 dfa-1 end-state-classifier)
