@@ -282,7 +282,6 @@
   (let ((visited-hash (make-hash-table :test #'equal))
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
     (labels ((constructF (accepts)
-
                (let* ((output '())
                       (added '()))
                  (loop for key being the hash-keys of visited-hash do
@@ -291,8 +290,8 @@
                              (progn
                                (setf added (cons key added))
                                (setf output (cons key output))))))
+                 (setq output (sort-state output))
                  output))
-               
 
              (sort-state (u)
                (sort u #'state-predicate))
@@ -391,12 +390,19 @@
 ;; (defun fa-subseteq (fa-0 fa-1))
 
 ;;;;;;;;;;;;;;;complement;;;;;;;;;
-(defun fa-complement (fa)
-  (setq fa
-        (add-dead-state-edges fa))
-  (setq fa 
-        (flip-accept-and-non-accept fa))
-  fa
+
+(defun does-state-have-alphabet-edge (edges symbol state)
+  (let* ((does-edge-exist nil))
+    (dolist (edge edges)
+      (if (and
+           (equal state (car edge))
+           (equal symbol (cadr edge)))
+          (setq does-edge-exist T)
+          nil
+          )
+      )
+    does-edge-exist
+    )
   )
 
 (defun add-dead-state-edges (fa)
@@ -406,7 +412,7 @@
       (dolist (symbol (finite-automaton-alphabet fa))
         (if (not (does-state-have-alphabet-edge edges symbol state))
             (setq edges (cons (list state symbol dead-state) edges))
-          nil
+            nil
             )
         )
       )
@@ -416,21 +422,6 @@
     (make-fa edges (finite-automaton-start fa) (finite-automaton-accept fa))
     )
   )
-
-(defun does-state-have-alphabet-edge (edges symbol state)
-  (let* ((does-edge-exist nil))
-    (dolist (edge edges)
-      (if (and
-           (equal state (car edge))
-           (equal symbol (cadr edge)))
-          (setq does-edge-exist T)
-        nil
-        )
-      )
-    does-edge-exist
-    )
-  )
-
 
 (defun flip-accept-and-non-accept (fa) 
   (let* ((list-of-new-accept-states nil)
@@ -443,45 +434,61 @@
     (if (not (finite-automaton-alphabet fa))
         (setq list-of-new-accept-states 
               (cons (car list-of-new-accept-states) possible-new-dead))
-      nil
-      )
-     (make-fa 
-      (finite-automaton-edges fa) 
-      (finite-automaton-start fa) 
-      list-of-new-accept-states) 
+        nil
+        )
+    (make-fa 
+     (finite-automaton-edges fa) 
+     (finite-automaton-start fa) 
+     list-of-new-accept-states) 
+    )
   )
-)
+
+(defun fa-complement (fa)
+  (setq fa
+        (add-dead-state-edges fa))
+  (setq fa 
+        (flip-accept-and-non-accept fa))
+  fa
+  )
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;equal and subseteq;;;;;;;;;;;;
 
 
+(defun get-list-of-edges-to-process (state edges)
+  (let* ((edges-with-state nil))
+    (dolist (edge edges)
+      (if (equal (car edge) state)
+          (setq edges-with-state (cons edge edges-with-state))
+          )
+      )
+    edges-with-state
+    )
+  )
 
-(defun fa-equivalent (fa-0 fa-1)
-  (is-fa-empty (dfa-product-hunter fa-0 fa-1 #'xor))
+(defun bfs (edges visited-map state-to-process)
+  (setf (gethash state-to-process visited-map) t)
+  (dolist (edge-to-process 
+           (get-list-of-edges-to-process state-to-process edges))
+    (if (not (gethash (caddr edge-to-process) visited-map))
+        (bfs edges visited-map (caddr edge-to-process))
+        nil
+        )
+    )
   )
 
 
-(defun xor (cond1 cond2)
-  (or(equal cond1 (not cond2))(equal (not cond1) cond2))
+(defun is-state-accept (state accept-list)
+  (let* ((is-in-accept NIL))
+    (dolist (accept-state accept-list)
+      (if (equal (symbol-name state) (symbol-name accept-state))
+          (setq is-in-accept T)
+          nil
+          )
+      )
+    is-in-accept)
   )
-
-;; ;; Test whether FA-0 is subseteq of FA-1
- (defun fa-subseteq (fa-0 fa-1)
-    (is-fa-empty (dfa-product-hunter fa-0 fa-1 #'a-not-b))
-   )
-
-(defun a-not-b (cond1 cond2)
-  (and cond1 (not cond2))
-  )
-
-(defun is-fa-empty (fa)
-  (let* ((states-map (make-hash-table :test #'equal)))
-    (init-hash-map-with-states states-map (finite-automaton-states fa))
-    (bfs (finite-automaton-edges fa) states-map (finite-automaton-start fa))
-    (evaluate-hash-map-and-accept states-map (finite-automaton-accept fa))
-  )
-)
 
 (defun accept-state-finder (edge0 edge1 accept-list-0 accept-list-1 end-state-classifier)
   (let* ((result nil))
@@ -502,7 +509,7 @@
     (dolist (accept-state accept-states)
       (if (gethash accept-state visited-map)
           (setq did-accept-state-get-visited T)
-        nil
+          nil
           )
       )
     (not did-accept-state-get-visited)
@@ -510,44 +517,12 @@
   )
 
 
-(defun bfs (edges visited-map state-to-process)
-  (setf (gethash state-to-process visited-map) t)
-  (dolist (edge-to-process 
-           (get-list-of-edges-to-process state-to-process edges))
-    (if (not (gethash (caddr edge-to-process) visited-map))
-        (bfs edges visited-map (caddr edge-to-process))
-      nil
-      )
-  )
-)
-
-(defun get-list-of-edges-to-process (state edges)
-  (let* ((edges-with-state nil))
-   (dolist (edge edges)
-     (if (equal (car edge) state)
-         (setq edges-with-state (cons edge edges-with-state))
-         )
-     )
-   edges-with-state
-  )
-)
-
 (defun init-hash-map-with-states (hash-map list-of-states)
   (dolist (state list-of-states)
     (setf (gethash state hash-map) nil)
     )
   )
 
-(defun is-state-accept (state accept-list)
-  (let* ((is-in-accept NIL))
-    (dolist (accept-state accept-list)
-      (if (equal (symbol-name state) (symbol-name accept-state))
-          (setq is-in-accept T)
-        nil
-        )
-      )
-    is-in-accept)
-  )
 
 (defun create-list-of-product-states (dfa-0 dfa-1)
   (let* ((product-states NIL))
@@ -573,8 +548,13 @@
     )
   )
 
-
-
+(defun is-fa-empty (fa)
+  (let* ((states-map (make-hash-table :test #'equal)))
+    (init-hash-map-with-states states-map (finite-automaton-states fa))
+    (bfs (finite-automaton-edges fa) states-map (finite-automaton-start fa))
+    (evaluate-hash-map-and-accept states-map (finite-automaton-accept fa))
+    )
+  )
 
 (defun dfa-product-hunter (dfa-0 dfa-1 end-state-classifier)
   (let* ((product-dfa-edges NIL)
@@ -591,7 +571,7 @@
                    (equal (car dfa-0-edge) (finite-automaton-start dfa-0))
                    (equal (car dfa-1-edge) (finite-automaton-start dfa-1)))
                   (setq start-state new-first-state)
-                nil)
+                  nil)
               (if (accept-state-finder 
                    (car dfa-0-edge) 
                    (car dfa-1-edge) 
@@ -600,20 +580,40 @@
                    end-state-classifier)
                   (if (not (is-state-accept new-first-state end-states))
                       (setq end-states (cons new-first-state end-states))
-                    nil)
-                nil)
+                      nil)
+                  nil)
               (let* ((new-cross-edge
-                      (list
-                       new-first-state
-                       (cadr dfa-0-edge)
-                       new-last-state
-                       )))
+                       (list
+                        new-first-state
+                        (cadr dfa-0-edge)
+                        new-last-state
+                        )))
                 (setq product-dfa-edges (cons new-cross-edge product-dfa-edges))
                 )
               )
-         nil)
+            nil)
         )
       )
     (make-fa product-dfa-edges start-state end-states)
     )
   )
+
+
+(defun xor (cond1 cond2)
+  (or(equal cond1 (not cond2))(equal (not cond1) cond2))
+  )
+
+
+(defun fa-equivalent (fa-0 fa-1)
+  (is-fa-empty (dfa-product-hunter (nfa->dfa fa-0) (nfa->dfa fa-1) #'xor))
+  )
+
+(defun a-not-b (cond1 cond2)
+  (and cond1 (not cond2))
+  )
+
+;; ;; Test whether FA-0 is subseteq of FA-1
+(defun fa-subseteq (fa-0 fa-1)
+  (is-fa-empty (dfa-product-hunter (nfa->dfa fa-0) (nfa->dfa fa-1) #'a-not-b))
+  )
+
