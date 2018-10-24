@@ -2,6 +2,8 @@
 ;;;; STARTER DEFINITIONS FOR FINITE AUTOMATA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Authors: Matthew Baldin, Clayton Kramp, Hunter Johnson
+
 ;; A structure type for finite automata
 (defstruct (finite-automaton)
   "A Finite Automaton."
@@ -374,7 +376,6 @@
                (e1 (cadr b)))
           (setq edges (cons (list head (list e0 e1) foot) edges)))))
     (make-fa edges start accepts)))
-  
 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;;; EXTRA CREDIT ;;;;
