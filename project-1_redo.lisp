@@ -184,9 +184,6 @@
   "Construct a unique state for a finite automaton."
   (gensym "q-"))
 
-(defun new-combined-state (a b)
-  (make-symbol (concatenate 'string (symbol-name a)  "," (symbol-name b))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; COMPLETE THE FUNCTIONS BELOW ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -240,10 +237,6 @@
                  ))))
     (let* ((start (newstate)))
       (destructuring-bind (edges accept) (rec (list nil start) regex)
-      ;  (format t "~% The edges are:  ~%")
-      ;  (princ edges)
-      ;  (format t "~% The accepts are ~%")
-      ;  (princ (list accept))
         (make-fa edges start (list accept))))))
 
 
@@ -287,11 +280,7 @@
   (let ((visited-hash (make-hash-table :test #'equal))
         (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
     (labels ((constructF (accepts)
-              ; (let* ((output '()))
-              ;   (dolist (item accepts output)
-              ;     (if (gethash item visited-hash)
-               ;        (setq output (cons item output))))
-               ;  output))
+
                (let* ((output '())
                       (added '()))
                  (loop for key being the hash-keys of visited-hash do
@@ -302,12 +291,6 @@
                                (setf output (cons key output))))))
                  output))
                
-              ; (let* ((output '()))
-              ;   (dolist (item accepts output)
-              ;     (loop for key being the hash-keys of visited-hash do
-              ;           (if (member item key)
-              ;               (setq output (cons key output)))))
-              ;   output))
 
              (sort-state (u)
                (sort u #'state-predicate))
@@ -337,130 +320,16 @@
       (make-fa E1 q01 F1))
       ))))
 
-  
-;; Compute the intersection between the arguments
-(defun dfa-intersection (dfa-0 dfa-1)
-  (let ((states (make-hash-table :test #'equal))
-        (edges))
-    (labels ((visit (q)
-               (unless (gethash q states)
-                 (setf (gethash q states) t)
-                 (destructuring-bind (q0 q1) q
-                   (TODO 'dfa-intersection)))))
-      (let ((s (list (finite-automaton-start dfa-0)
-                     (finite-automaton-start dfa-1))))
-        (visit s)
-        (TODO 'dfa-intersection)))))
-
-
-;;This is my implementation of intersection.  I am not sure if this is different from what he wants????
-(defun dfa-intersection-hunter-version (dfa-0 dfa-1)
-  (dfa-product dfa-0 dfa-1 #'binary-and)
-  )
-
-(defun accept-state-finder (edge0 edge1 accept-list-0 accept-list-1 end-state-classifier)
-  (let* ((result nil))
-    (if (funcall end-state-classifier 2
-         (is-state-accept edge0 accept-list-0)
-         (is-state-accept edge1 accept-list-1))
-        (setq result T)
-      NIL)
-    result
-    )
-  )
-
-(defun binary-and (arg0 arg1)
-  (and arg0 arg1)
-  )
-
-(defun is-state-accept (state accept-list)
-  (let* ((is-in-accept NIL))
-    (dolist (accept-state accept-list)
-      (if (equal (symbol-name state) (symbol-name accept-state))
-          (setq is-in-accept T)
-        nil
-        )
-      )
-    is-in-accept)
-  )
-
-(defun create-list-of-product-states (dfa-0 dfa-1)
-  (let* ((product-states NIL))
-  (dolist (state-0 (finite-automaton-states dfa-0))
-    (dolist (state-1 (finite-automaton-states dfa-1))
-      (setq product-states 
-            (cons 
-             (new-combined-state state-0 state-1)
-             product-states))
-      )
-    )
-  product-states)
-)
-
-(defun return-proper-state (state-to-find list-of-states)
-  (let* ((state-to-return nil))
-    (dolist (current-state list-of-states)
-      (if (equal (symbol-name current-state) (symbol-name state-to-find))
-          (setq state-to-return current-state)
-        nil)
-      )
-    state-to-return
-    )
-  )
-
-;;Output a list of edges that corespond to the product dfa
-(defun dfa-product (dfa-0 dfa-1 end-state-classifier)
-  (let* ((product-dfa-edges NIL)
-         (start-state NIL)
-         (end-states NIL)
-         (states-list (create-list-of-product-states dfa-0 dfa-1)))
-    (dolist (dfa-0-edge (finite-automaton-edges dfa-0))
-      (dolist (dfa-1-edge (finite-automaton-edges dfa-1))
-        (if (equal (cadr dfa-0-edge) (cadr dfa-1-edge))
-            (let* ((new-first-state (return-proper-state (new-combined-state (car dfa-0-edge) (car dfa-1-edge)) states-list))
-                   (new-last-state  (return-proper-state (new-combined-state (caddr dfa-0-edge) (caddr dfa-1-edge)) states-list)))
-              (if (equal
-                   (equal (cadr dfa-0-edge) (finite-automaton-start dfa-0))
-                   (equal (cadr dfa-1-edge) (finite-automaton-start dfa-1)))
-                  (setq start-state new-first-state)
-                nil)
-              (if (accept-state-finder 
-                   (car dfa-0-edge) 
-                   (car dfa-1-edge) 
-                   (finite-automaton-accept dfa-0) 
-                   (finite-automaton-accept dfa-1)
-                   end-state-classifier)
-                  (if (not (is-state-accept new-first-state end-states))
-                      (setq end-states (cons new-first-state end-states))
-                    nil)
-                nil)
-              (let* ((new-cross-edge
-                      (list
-                       new-first-state
-                       (cadr dfa-0-edge)
-                       new-last-state
-                       )))
-                (setq product-dfa-edges (cons new-cross-edge product-dfa-edges))
-                )
-              )
-         nil)
-        )
-      )
-    (format t "End of dfa-product")
-    (make-fa product-dfa-edges start-state end-states)
-    )
-  )
+ 
 
 ;tried adding back epsilon edges to start from all previous - does not work
 ;try making an epsilon edge between all of the previous start states
 ;will need to modify accept state
 (defun reverse-dfa (dfa)
-  (let* ((q01 (newstate))
+  (let* (
          (output '()))
     (dolist (edge (finite-automaton-edges dfa) output)
       (setf output (cons (reverse edge) output)))
-    ;(dolist (state (finite-automaton-accept dfa) output)
-    ;(setf output (cons (list q01 :epsilon state) output))
     (let* ((head (car (finite-automaton-accept dfa))))
       (dolist (state (finite-automaton-accept dfa) output)
         (setq output (cons (list head :epsilon state) output))))
@@ -473,68 +342,39 @@
     newDFA)
   )
 
+(defun product-dfa (dfa-0 dfa-1 accepts)
+  (let* ((edges '())
+         (start (list (finite-automaton-start dfa-0) (finite-automaton-start dfa-1))))
+    (dolist (a (finite-automaton-edges dfa-0) edges)
+      (dolist (b (finite-automaton-edges dfa-1) edges)
+        (let* ((head (list (car a) (car b)))
+               (foot (list (car (cdr (cdr a))) (car (cdr (cdr b)))))
+               (e0 (cadr a))
+               (e1 (cadr b)))
+          (if (equal e0 e1)
+              (setq edges (cons (list head e0 foot) edges))))))
+    (make-fa edges start accepts)))
 
-
-(defun test-dfa-product () 
-  (fa-dot
-   (dfa-product 
-    (make-fa '((a 1 b)
-               (a 0 a)
-               (b 0 a)
-               (b 1 a))
-             'a
-             '(b))
-    (make-fa '((c 1 c)
-               (c 0 d)
-               (d 0 d)
-               (d 1 c))
-             'c
-             '(d))
-    #'equal
-    )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test_product_dfa.dot"
-   )
-  )
-;;This is the example from the slide
-(defun test-dfa-intersection ()
-  (fa-dot
-   (dfa-intersection-hunter-version 
-    (make-fa '((a 1 b)
-               (a 0 a)
-               (b 0 a)
-               (b 1 a))
-             'a
-             '(b))
-    (make-fa '((c 1 c)
-               (c 0 d)
-               (d 0 d)
-               (d 1 c))
-             'c
-             '(c))
-    )
-   "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\test-intersection-dfa.dot"
-   )
+(defun dfa-intersection (dfa-0 dfa-1)
+  (let* ((accepts '()))
+    (dolist (a (finite-automaton-accept dfa-0) accepts)
+      (dolist (b (finite-automaton-accept dfa-1) accepts)
+        (setq accepts (cons (list a b) accepts))))
+    (product-dfa dfa-0 dfa-1 accepts))
   )
 
-(defun test-regex->nfa ()
-  (fa-dot 
-   (regex->nfa '(:concatenation a b (:kleene-closure c)))
-    "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\regex-test.dot"
-    )
-  )
-
-(defun print-out-fa ()
-  (fa-dot 
-       (make-fa '((c 1 c)
-               (c 0 d)
-               (d 0 d)
-               (d 1 c))
-             'c
-             '(d))
-        "C:\\Users\\Hunter Johnson\\Documents\\CSCI561\\project1DotFiles\\trivial.dot"
-       )
-  )
-
+(defun dfa-cartesian (dfa-0 dfa-1 accepts)
+  (let* ((edges '())
+         (start (list (finite-automaton-start dfa-0) (finite-automaton-start dfa-1))))
+    (dolist (a (finite-automaton-edges dfa-0) edges)
+      (dolist (b (finite-automaton-edges dfa-1) edges)
+        (let* ((head (list (car a) (car b)))
+               (foot (list (car (cdr (cdr a))) (car (cdr (cdr b)))))
+               (e0 (cadr a))
+               (e1 (cadr b)))
+          (setq edges (cons (list head (list e0 e1) foot) edges)))))
+    (make-fa edges start accepts)))
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;;; EXTRA CREDIT ;;;;
